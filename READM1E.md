@@ -260,5 +260,6 @@ CLI usage (bypasses guardrails — dev/debug tool):
 uv run python -m src.cli index --project medrag --skip-if-exists
 uv run python -m src.cli query "What is first-line therapy for hypertension?" --project medrag
 ```
-#   M e d R A G _ l i v e - f e a t u r e - i o - g u a r d r a i l s  
+#   M e d R A G _ l i v e - f e a t u r e - i o - g u a r d r a i l s 
+ 
  
