@@ -1,0 +1,157 @@
+name: Deploy Production
+
+on:
+  workflow_run:
+    workflows:
+      - Evaluation
+    types:
+      - completed
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: medrag-prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      PROD_STACK_NAME: ${{ vars.PROD_STACK_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Validate required repository variables
+        run: |
+          : "${AWS_REGION:?Set AWS_REGION repository variable}"
+          : "${AWS_ROLE_ARN:?Set AWS_ROLE_ARN repository variable}"
+          : "${PROD_STACK_NAME:?Set PROD_STACK_NAME repository variable}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+
+      - name: Resolve stack outputs
+        id: stack
+        run: |
+          outputs="$(aws cloudformation describe-stacks \
+            --stack-name "${PROD_STACK_NAME}" \
+            --region "${AWS_REGION}" \
+            --query 'Stacks[0].Outputs' \
+            --output json)"
+          ecr_uri="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="EcrRepositoryUri").OutputValue')"
+          bucket_name="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="DeployBucketName").OutputValue')"
+          instance_id="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="InstanceId").OutputValue')"
+          secret_arn="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="SecretArn").OutputValue')"
+          elastic_ip="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="ElasticIp").OutputValue')"
+          {
+            echo "ecr_uri=${ecr_uri}"
+            echo "bucket_name=${bucket_name}"
+            echo "instance_id=${instance_id}"
+            echo "secret_arn=${secret_arn}"
+            echo "elastic_ip=${elastic_ip}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push app image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.stack.outputs.ecr_uri }}:sha-${{ github.event.workflow_run.head_sha }}
+            ${{ steps.stack.outputs.ecr_uri }}:latest
+
+      - name: Package deployment bundle
+        id: bundle
+        run: |
+          release_id="${{ github.event.workflow_run.head_sha }}"
+          bundle_path="$(bash scripts/package-deploy-bundle.sh "${release_id}")"
+          bundle_key="releases/${release_id}/medrag-prod-bundle.tgz"
+          aws s3 cp "${bundle_path}" "s3://${{ steps.stack.outputs.bucket_name }}/${bundle_key}" --region "${AWS_REGION}"
+          {
+            echo "release_id=${release_id}"
+            echo "bundle_uri=s3://${{ steps.stack.outputs.bucket_name }}/${bundle_key}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Trigger remote deploy over SSM
+        id: ssm
+        run: |
+          commands_json="$(jq -nc \
+            --arg region "${AWS_REGION}" \
+            --arg bundle "${{ steps.bundle.outputs.bundle_uri }}" \
+            --arg release "${{ steps.bundle.outputs.release_id }}" \
+            --arg app_image "${{ steps.stack.outputs.ecr_uri }}@${{ steps.build.outputs.digest }}" \
+            --arg secret_id "${{ steps.stack.outputs.secret_arn }}" \
+            '[
+              "set -euo pipefail",
+              "tmp_dir=$(mktemp -d)",
+              "aws s3 cp \"" + $bundle + "\" \"$tmp_dir/bundle.tgz\" --region \"" + $region + "\"",
+              "tar -xzf \"$tmp_dir/bundle.tgz\" -C \"$tmp_dir\"",
+              "sudo env AWS_REGION=\"" + $region + "\" RELEASE_ID=\"" + $release + "\" APP_IMAGE=\"" + $app_image + "\" SECRET_ID=\"" + $secret_id + "\" BUNDLE_LOCAL_PATH=\"$tmp_dir/bundle.tgz\" bash \"$tmp_dir/scripts/deploy-prod.sh\""
+            ]')"
+          command_id="$(aws ssm send-command \
+            --instance-ids "${{ steps.stack.outputs.instance_id }}" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy MedRAG ${GITHUB_SHA}" \
+            --parameters "commands=${commands_json}" \
+            --region "${AWS_REGION}" \
+            --query 'Command.CommandId' \
+            --output text)"
+          echo "command_id=${command_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Wait for remote deploy
+        run: |
+          while true; do
+            status="$(aws ssm get-command-invocation \
+              --command-id "${{ steps.ssm.outputs.command_id }}" \
+              --instance-id "${{ steps.stack.outputs.instance_id }}" \
+              --region "${AWS_REGION}" \
+              --query Status \
+              --output text)"
+            case "${status}" in
+              Success)
+                break
+                ;;
+              Cancelled|Failed|TimedOut|Cancelling)
+                aws ssm get-command-invocation \
+                  --command-id "${{ steps.ssm.outputs.command_id }}" \
+                  --instance-id "${{ steps.stack.outputs.instance_id }}" \
+                  --region "${AWS_REGION}" \
+                  --output json
+                exit 1
+                ;;
+              *)
+                sleep 10
+                ;;
+            esac
+          done
+
+      - name: Smoke check production URL
+        run: |
+          curl -fsS "http://${{ steps.stack.outputs.elastic_ip }}/" >/dev/null
+          printf 'Production URL: http://%s\n' "${{ steps.stack.outputs.elastic_ip }}"
+          {
+            echo "## Production deploy"
+            echo
+            echo "- Release: \`${{ github.event.workflow_run.head_sha }}\`"
+            echo "- Image: \`${{ steps.stack.outputs.ecr_uri }}@${{ steps.build.outputs.digest }}\`"
+            echo "- URL: http://${{ steps.stack.outputs.elastic_ip }}/"
+          } >> "${GITHUB_STEP_SUMMARY}"

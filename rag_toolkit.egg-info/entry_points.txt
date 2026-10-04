@@ -1,0 +1,2 @@
+[console_scripts]
+rag-toolkit = src.cli:main

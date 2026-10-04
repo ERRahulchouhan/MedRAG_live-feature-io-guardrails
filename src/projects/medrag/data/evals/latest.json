@@ -1,0 +1,145 @@
+{
+  "summary": {
+    "project": "medrag",
+    "collection_name": "medrag_collection_bge_small",
+    "started_at": "2026-04-03T04:20:50.346163Z",
+    "completed_at": "2026-04-03T04:21:44.122770Z",
+    "duration_seconds": 53.776607,
+    "dataset_size": 3,
+    "passed_cases": 0,
+    "failed_cases": 3,
+    "success_rate": 0.0,
+    "success": false
+  },
+  "cases": [
+    {
+      "id": "med_001",
+      "query": "What is a common first-line medication approach for type 2 diabetes?",
+      "expected_answer": "Clinical guidelines commonly describe metformin as a standard first-line therapy for type 2 diabetes, depending on patient-specific factors.",
+      "actual_answer": "A common first-line medication approach for type 2 diabetes is the use of metformin, provided there are no contraindications. This is typically combined with lifestyle modifications and glycemic monitoring. Individualized treatment may escalate to GLP-1 receptor agonists, SGLT2 inhibitors, or insulin based on various factors such as comorbidities, kidney function, cardiovascular risk, and glycemic control.",
+      "sources": [
+        "Bootstrap: bootstrap_seed",
+        "PubMed: Unknown document"
+      ],
+      "retrieval_context": [
+        "Type 2 diabetes management usually begins with lifestyle modification, glycemic monitoring, and metformin when there are no contraindications. Guidelines commonly describe individualized escalation to GLP-1 receptor agonists, SGLT2 inhibitors, or insulin based on comorbidities, kidney function, cardiovascular risk, and glycemic control.",
+        "Type 1 diabetes requires insulin replacement therapy rather than oral first-line agents. Guideline-based care typically includes basal-bolus or pump-based insulin delivery, glucose monitoring, hypoglycemia education, and individualized nutrition planning.",
+        "Task name Task explanation Fill in patient information The user is asked to type or select from a drop-down list. The data are entered into the system using the keyboard and mouse. They include name and surname, gender, age, education level, occupation, address, weight, height, type of diabetes, age of onset of diabetes, and associated specific disease. Register laboratory results The user is asked to type laboratory result values and read medical documentation. FBS a b c d e f g h Attending edu",
+        "GLP-1 RAs continue to be a cornerstone of antidiabetic therapy but should not be misconstrued as a panacea. The complex profile that emerged from our findings was characterized by potential neuroprotective and respiratory benefits coexisting with safety signals related to gastrointestinal events, such as nausea and vomiting. These findings reinforce the necessity of individualized therapeutic strategies and sustained clinical vigilance rather than routine practice change. References 1 Buse JB He"
+      ],
+      "metrics": [
+        {
+          "name": "Answer Relevance",
+          "score": 0.5,
+          "threshold": 0.7,
+          "success": false,
+          "reason": "The score is 0.50 because while the output mentions several medications related to type 2 diabetes, it includes irrelevant details about treatments that are not typically first-line options. This detracts from the focus on the common first-line medication approach, which is the core of the input question. However, the output does touch on relevant medications, maintaining a moderate level of relevancy.",
+          "error": null
+        },
+        {
+          "name": "Context Relevance",
+          "score": 0.18181818181818182,
+          "threshold": 0.7,
+          "success": false,
+          "reason": "The score is 0.18 because the relevant statement 'Type 2 diabetes management usually begins with lifestyle modification, glycemic monitoring, and metformin when there are no contraindications' is overshadowed by numerous irrelevant details, such as 'individualized escalation to GLP-1 receptor agonists' and 'insulin delivery,' which do not pertain to the first-line medication approach for type 2 diabetes.",
+          "error": null
+        },
+        {
+          "name": "Groundedness",
+          "score": 1.0,
+          "threshold": 0.7,
+          "success": true,
+          "reason": "The score is 1.00 because there are no contradictions, indicating that the actual output is perfectly aligned with the retrieval context. Great job maintaining accuracy and consistency!",
+          "error": null
+        }
+      ],
+      "success": false
+    },
+    {
+      "id": "med_002",
+      "query": "What kinds of information do hypertension guidelines usually provide?",
+      "expected_answer": "Hypertension guidelines generally cover diagnosis thresholds, blood pressure targets, medication classes, and follow-up recommendations.",
+      "actual_answer": "Hypertension guidelines typically provide information on blood pressure thresholds, target ranges, home blood pressure monitoring, lifestyle changes, and medication classes, which include ACE inhibitors, ARBs, calcium-channel blockers, and thiazide-type diuretics. Additionally, they outline the follow-up cadence based on the severity of the condition, symptoms, and treatment response.",
+      "sources": [
+        "Bootstrap: bootstrap_seed",
+        "PubMed: Unknown document"
+      ],
+      "retrieval_context": [
+        "Hypertension guidelines generally cover blood pressure thresholds, target ranges, home blood pressure monitoring, lifestyle changes, and medication classes such as ACE inhibitors, ARBs, calcium-channel blockers, and thiazide-type diuretics. Follow-up cadence depends on severity, symptoms, and treatment response.",
+        "pmc Geriatr Gerontol Int Geriatr Gerontol Int 379 blackwellopen GGI Geriatrics & Gerontology International 1444-1586 1447-0594 pmc-is-collection-domain yes pmc-collection-title Wiley Open Access Collection PMC13040132 PMC13040132.1 13040132 13040132 41918339 10.1111/ggi.70456 GGI70456 GGI-2024-2025.R1 1 Invited Review Invited Review Postprandial Hypotension—Methods for the Evaluation and Management Ishikawa Joji https://orcid.org/0000-0002-8669-815X 1 joji_ishikawa@tmghig.jp Toba Ayumi 1 Futami ",
+        "However, this effect is not sustained once walking ceases; therefore, patients with symptomatic PPH should either continue walking or remain seated [ 42 Vasoactive agents should be used cautiously and only under specific conditions because patients with autonomic dysfunction often exhibit exaggerated BP variability, transient hypertensive episodes, and supine hypertension. Treatment with levodopa/benserazide (125 mg, twice daily) did not significantly improve orthostatic or PPH in patients with ",
+        "Series A, Biological Sciences and Medical Sciences 55 2000 M535 M540 10995052 10.1093/gerona/55.9.m535 30 F. Puisieux D. Court E. Baheu C. Dipompeo H. Bulckaen P. Dewailly Intraindividual Reproducibility of Postprandial Hypotension Gerontology 48 2002 315 320 12169798 10.1159/000065256 31 R. W. Jansen M. M. Kelly‐Gagnon L. A. Lipsitz Intraindividual Reproducibility of Postprandial and Orthostatic Blood Pressure Changes in Older Nursing‐Home Patients: Relationship With Chronic Use of Cardiovascul"
+      ],
+      "metrics": [
+        {
+          "name": "Answer Relevance",
+          "score": 1.0,
+          "threshold": 0.7,
+          "success": true,
+          "reason": "The score is 1.00 because the response perfectly aligns with the input, providing relevant and comprehensive information about hypertension guidelines without any irrelevant statements. Great job!",
+          "error": null
+        },
+        {
+          "name": "Context Relevance",
+          "score": 0.375,
+          "threshold": 0.7,
+          "success": false,
+          "reason": "The score is 0.38 because the majority of the retrieval context is irrelevant, focusing on topics like postprandial hypotension and bibliographic references, which do not address hypertension guidelines. However, the relevant statement does provide a concise overview of what hypertension guidelines typically include, such as blood pressure thresholds and medication classes.",
+          "error": null
+        },
+        {
+          "name": "Groundedness",
+          "score": 1.0,
+          "threshold": 0.7,
+          "success": true,
+          "reason": "The score is 1.00 because there are no contradictions, indicating a perfect alignment between the actual output and the retrieval context. Great job maintaining accuracy and consistency!",
+          "error": null
+        }
+      ],
+      "success": false
+    },
+    {
+      "id": "med_003",
+      "query": "Why should retrieved medical guidance include a disclaimer?",
+      "expected_answer": "Medical RAG systems should clarify that outputs are educational and not a substitute for clinician judgment or personalized care.",
+      "actual_answer": "Retrieved medical guidance should include a disclaimer to clarify that the information is for educational purposes only and does not replace clinician judgment, diagnosis, or personalized treatment. This disclaimer helps users understand the limitations of the material and encourages them to consult qualified healthcare professionals for personalized advice.",
+      "sources": [
+        "Bootstrap: bootstrap_seed",
+        "PubMed: Unknown document"
+      ],
+      "retrieval_context": [
+        "Medical guidance in retrieval-augmented systems should include a disclaimer that the information is for educational purposes only and is not a substitute for clinician judgment, diagnosis, or personalized treatment. The disclaimer helps users understand the limits of the retrieved material and encourages consultation with qualified healthcare professionals.",
+        "Salwei ME Davis SE Reale C et al Human-centered design of an artificial intelligence monitoring system: the Vanderbilt Algorithmovigilance Monitoring and Operations System JAMIA Open Oct 2025 8 5 ooaf136 doi 10.1093/jamiaopen/ooaf136 Medline 41180894 PMC12574793 79. Asgari E Montaña-Brown N Dubois M et al A framework to assess clinical safety and hallucination rates of LLMs for medical text summarisation NPJ Digit Med 05 13 2025 8 1 274 doi 10.1038/s41746-025-01670-7 Medline 40360677 PMC12075489",
+        "Braun M Hummel P Beck S Dabrock P Primer on an ethics of AI-based decision support systems in the clinic J Med Ethics Apr 3 2020 47 12 e3 doi 10.1136/medethics-2019-105860 Medline 32245804 PMC8639945 6. McCradden MD Joshi S Anderson JA London AJ A normative framework for artificial intelligence as a sociotechnical system in healthcare Patterns (N Y) Nov 10 2023 4 11 100864 doi 10.1016/j.patter.2023.100864 Medline 38035190 PMC10682751 7. Liaw ST Liyanage H Kuziemsky C et al Ethical use of electro",
+        "Risk-based guardrails should define when GenAI can operate autonomously in supporting patients’ knowledge and data capture (eg, by translating clinician-authored recommendations into plain language, generating visit summaries, or helping patients record symptoms and goals for minor issues) and where clinician review and sign-off are required before outputs are used to guide care (eg, for patients with multimorbidities who may face conflicting guidelines) [ 74 75 76 Establishing Independent Testi"
+      ],
+      "metrics": [
+        {
+          "name": "Answer Relevance",
+          "score": 1.0,
+          "threshold": 0.7,
+          "success": true,
+          "reason": "The score is 1.00 because the response perfectly addressed the question about the necessity of disclaimers in medical guidance without any irrelevant information. Great job on staying focused and relevant!",
+          "error": null
+        },
+        {
+          "name": "Context Relevance",
+          "score": 0.5555555555555556,
+          "threshold": 0.7,
+          "success": false,
+          "reason": "The score is 0.56 because while the relevant statements emphasize the importance of disclaimers in medical guidance, much of the retrieval context is focused on unrelated topics such as AI monitoring systems and clinical safety assessments, which do not directly address the need for disclaimers.",
+          "error": null
+        },
+        {
+          "name": "Groundedness",
+          "score": 1.0,
+          "threshold": 0.7,
+          "success": true,
+          "reason": "The score is 1.00 because there are no contradictions, indicating a perfect alignment between the actual output and the retrieval context. Great job maintaining accuracy and consistency!",
+          "error": null
+        }
+      ],
+      "success": false
+    }
+  ]
+}

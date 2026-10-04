@@ -1,0 +1,52 @@
+name: Destroy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DESTROY_MEDRAG_PROD to continue.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: medrag-prod-destroy
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    if: ${{ inputs.confirmation == 'DESTROY_MEDRAG_PROD' }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_BOOTSTRAP_ROLE_ARN: ${{ vars.AWS_BOOTSTRAP_ROLE_ARN }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      PROD_STACK_NAME: ${{ vars.PROD_STACK_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate required repository variables
+        run: |
+          : "${AWS_REGION:?Set AWS_REGION repository variable}"
+          : "${AWS_BOOTSTRAP_ROLE_ARN:?Set AWS_BOOTSTRAP_ROLE_ARN repository variable}"
+          : "${PROD_STACK_NAME:?Set PROD_STACK_NAME repository variable}"
+          if [[ -n "${AWS_ROLE_ARN:-}" && "${AWS_BOOTSTRAP_ROLE_ARN}" == "${AWS_ROLE_ARN}" ]]; then
+            echo "AWS_BOOTSTRAP_ROLE_ARN must reference an external bootstrap/admin role, not the stack-managed AWS_ROLE_ARN." >&2
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_BOOTSTRAP_ROLE_ARN }}
+
+      - name: Destroy production stack
+        run: |
+          bash scripts/destroy-prod.sh \
+            --stack-name "${PROD_STACK_NAME}" \
+            --region "${AWS_REGION}" \
+            --confirm "${{ inputs.confirmation }}"

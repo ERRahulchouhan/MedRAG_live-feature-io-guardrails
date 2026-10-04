@@ -1,0 +1,86 @@
+name: Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_BOOTSTRAP_ROLE_ARN: ${{ vars.AWS_BOOTSTRAP_ROLE_ARN }}
+      PROD_STACK_NAME: ${{ vars.PROD_STACK_NAME }}
+      PROD_VPC_ID: ${{ vars.PROD_VPC_ID }}
+      PROD_SUBNET_ID: ${{ vars.PROD_SUBNET_ID }}
+      PROD_INSTANCE_TYPE: ${{ vars.PROD_INSTANCE_TYPE }}
+      PROD_SECRET_NAME: ${{ vars.PROD_SECRET_NAME }}
+      EXISTING_GITHUB_OIDC_PROVIDER_ARN: ${{ vars.EXISTING_GITHUB_OIDC_PROVIDER_ARN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate required repository variables
+        run: |
+          : "${AWS_REGION:?Set AWS_REGION repository variable}"
+          : "${AWS_BOOTSTRAP_ROLE_ARN:?Set AWS_BOOTSTRAP_ROLE_ARN repository variable}"
+          : "${PROD_STACK_NAME:?Set PROD_STACK_NAME repository variable}"
+          : "${PROD_VPC_ID:?Set PROD_VPC_ID repository variable}"
+          : "${PROD_SUBNET_ID:?Set PROD_SUBNET_ID repository variable}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_BOOTSTRAP_ROLE_ARN }}
+
+      - name: Validate CloudFormation template
+        run: |
+          aws cloudformation validate-template \
+            --template-body file://infra/cloudformation/medrag-prod.yml \
+            --region "${AWS_REGION}" >/dev/null
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${PROD_STACK_NAME}" \
+            --template-file infra/cloudformation/medrag-prod.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --region "${AWS_REGION}" \
+            --parameter-overrides \
+              ProjectSlug=medrag-prod \
+              VpcId="${PROD_VPC_ID}" \
+              SubnetId="${PROD_SUBNET_ID}" \
+              InstanceType="${PROD_INSTANCE_TYPE:-t3.large}" \
+              GitHubOwner="${GITHUB_REPOSITORY_OWNER}" \
+              GitHubRepository="${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" \
+              GitHubBranch=main \
+              ExistingGitHubOidcProviderArn="${EXISTING_GITHUB_OIDC_PROVIDER_ARN}" \
+              SecretName="${PROD_SECRET_NAME:-medrag/prod/app}"
+
+      - name: Enable stack termination protection
+        run: |
+          aws cloudformation update-termination-protection \
+            --enable-termination-protection \
+            --stack-name "${PROD_STACK_NAME}" \
+            --region "${AWS_REGION}"
+
+      - name: Print stack outputs
+        run: |
+          outputs="$(aws cloudformation describe-stacks \
+            --stack-name "${PROD_STACK_NAME}" \
+            --region "${AWS_REGION}" \
+            --query 'Stacks[0].Outputs' \
+            --output json)"
+          printf '%s\n' "${outputs}" | jq -r '.[] | "\(.OutputKey)=\(.OutputValue)"'
+          github_role_arn="$(printf '%s' "${outputs}" | jq -r '.[] | select(.OutputKey=="GitHubActionsRoleArn").OutputValue')"
+          {
+            echo "## Infrastructure outputs"
+            echo
+            echo "- Stack: \`${PROD_STACK_NAME}\`"
+            echo "- GitHub runtime role: \`${github_role_arn}\`"
+            echo "- Next step: update the repository variable \`AWS_ROLE_ARN\` to this value before using the deploy workflow."
+            echo "- Keep \`AWS_BOOTSTRAP_ROLE_ARN\` pointed at an external bootstrap/admin role for the infrastructure and destroy workflows."
+          } >> "${GITHUB_STEP_SUMMARY}"
