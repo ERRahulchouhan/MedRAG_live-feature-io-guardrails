@@ -203,7 +203,7 @@ The eval process works like this:
 
 The code for this lives in:
 - `src/core/evals.py`
-- `src/api/main.py`
+- `src/api/main.py` 
 
 The result is saved to a project data directory, typically under:
 - `src/projects/medrag/data/evals/`
