@@ -1,4 +1,6 @@
-# MedRAG Application Workflow
+# MedRAG End-to-End Application Workflow
+
+This diagram follows a user question through the application to the final answer, including current validation, authentication, guardrail, and error behavior.
 
 ## User question to final response
 
@@ -15,7 +17,8 @@ flowchart LR
     end
 
     subgraph backend[Backend/API: FastAPI]
-        endpoint[POST /query<br/>No authentication middleware configured]
+        endpoint[POST /query]
+        auth_status[Authentication<br/>Not configured; request proceeds]
         schema{Pydantic validation<br/>question length >= 5?}
         validation_error[Return HTTP 422]
         input_check{Input guardrail allows?}
@@ -52,7 +55,7 @@ flowchart LR
     user --> ui --> blank
     blank -- Yes --> ui_error --> user
     blank -- No -->|POST question as JSON| endpoint
-    endpoint --> schema
+    endpoint --> auth_status --> schema
     schema -- No --> validation_error --> show_error
     schema -- Yes --> input_check
 
@@ -78,6 +81,9 @@ flowchart LR
     response --> show_result --> user
 
     service_call -. unhandled retrieval or LLM error .-> query_error --> show_error
+    make_query -. retrieval error .-> query_error
+    llm -. generation error .-> query_error
+    show_error --> user
 
     classDef decision fill:#fff3cd,stroke:#9a6700,color:#24292f;
     classDef error fill:#ffebe9,stroke:#cf222e,color:#24292f;
@@ -90,7 +96,7 @@ flowchart LR
 ## Notes
 
 - The UI also rejects an empty question. FastAPI then validates the JSON request; invalid requests receive HTTP 422.
-- The `/query` endpoint has no authentication middleware or authentication dependency configured in this application.
+- The `/query` endpoint has no authentication middleware or authentication dependency configured, so requests proceed without a credential check.
 - If Groq is configured, Prompt Guard checks the question and the safeguard model checks the generated answer. A guardrail rejection returns HTTP 422. If Groq is not configured or a guardrail call fails, the current implementation allows the request or answer through and logs the failure.
 - A missing Qdrant collection returns HTTP 503. Other errors during query processing are returned as HTTP 500. The Streamlit UI displays API errors to the user.
 - FastEmbed runs locally. OpenAI generates the response; Groq is used for the optional guardrail checks. Qdrant is the vector database.
